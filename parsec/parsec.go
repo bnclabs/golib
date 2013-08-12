@@ -11,12 +11,17 @@ type Scanner interface {
     Next() Token
     BookMark() int
     Rewind(int)
-    Text() string
+    Text() []byte
 }
 type Token struct {
     Type string
     Value string
     Pos scanner.Position
+}
+type Terminal struct {
+    Name string         // typically contains terminal's token type
+    Value string        // value of the terminal
+    Tok Token           // Actual token obtained from the scanner
 }
 
 func docallback( callb Nodify, n []ParsecNode ) ParsecNode {
@@ -135,6 +140,9 @@ func Maybe( name string, callb Nodify, parsec Parsec ) Parsec {
         return func(s Scanner) ParsecNode {
             //fmt.Println(name)
             n := parsec()(s)
+            if n == nil {
+                return docallback(callb, nil)
+            }
             return docallback( callb, []ParsecNode{n} )
         }
     }
@@ -148,7 +156,7 @@ func Terminalize(matchval string, n string, v string ) Parsec {
             tok := s.Peek(0)
             if matchval == tok.Value {
                 s.Scan()
-                return tok
+                return &Terminal{Name:n, Value:v, Tok:tok}
             } else {
                 return nil
             }
@@ -162,16 +170,16 @@ func Literal() Parser {
         tok := s.Peek(0)
         if tok.Type == "String" {
             s.Scan()
-            return &tok
+            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
         } else if tok.Type == "Char" {
             s.Scan()
-            return &tok
+            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
         } else if tok.Type == "Int" {
             s.Scan()
-            return &tok
+            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
         } else if tok.Type == "Float" {
             s.Scan()
-            return &tok
+            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
         } else {
             return nil
         }
@@ -187,9 +195,5 @@ func End() Parser {
         }
         return &tok
     }
-}
-
-func Error( s Scanner, str string ) {
-    panic( fmt.Sprintf( "%v before %v \n", str, s.Next().Pos ))
 }
 

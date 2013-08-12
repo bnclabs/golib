@@ -2,29 +2,24 @@ package parsec
 import "text/scanner"
 import "io"
 import "fmt"
-import "os"
+import "bytes"
 
 type Goscan struct {
-    text string
+    text []byte
     req chan<- interface{}
     res <-chan interface{}
     filename string
 }
 
-func NewGoScan(filename string) *Goscan {
+func NewGoScan(text []byte) *Goscan {
     var res = make( chan interface{} )
     var req  = make( chan interface{} )
-    var fd *os.File
-    var text []byte
-    fd, _ = os.Open(filename)
-    fd.Read(text)
-    fd.Close()
-    fd, _ = os.Open(filename)
-    go doscan( req, res, fd )
-    return &Goscan{ req: req, res: res, filename:filename }
+    rd := bytes.NewReader( text )
+    go doscan( req, res, rd )
+    return &Goscan{ req: req, res: res, text:text }
 }
 
-func (s *Goscan) Text() string {
+func (s *Goscan) Text() []byte {
     return s.text
 }
 
