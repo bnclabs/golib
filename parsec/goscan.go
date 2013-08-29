@@ -22,7 +22,7 @@ type Goscan struct {
 
 // Create a new instance of Goscan. Subsequently Scanner interface can be used
 // on this object.
-func NewGoScan(text []byte, options map[string]Interface) *Goscan {
+func NewGoScan(text []byte, options map[string]interface{}) *Goscan {
     var res = make( chan Interface )
     var req = make( chan Interface )
     rd := bytes.NewReader( text )
