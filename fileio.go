@@ -1,4 +1,7 @@
 package golib
+import (
+   "os"; "bufio"
+)
 
 func Readlines( filename string ) []string {
     var lines = make( []string, 0 )

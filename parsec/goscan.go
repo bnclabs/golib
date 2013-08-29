@@ -1,39 +1,54 @@
-package parsec
-import "text/scanner"
-import "io"
-import "fmt"
-import "bytes"
+// Uses text/scanner to generate tokens. This scanner can be integrated with
+// parsec tool using `Scanner' interface.
 
+package parsec
+import (
+    "io"; "fmt"; "bytes"; "text/scanner"; "github.com/prataprc/golib"
+)
+
+// Type that implements Scanner interface
 type Goscan struct {
+    // Complete input text
     text []byte
-    req chan<- interface{}
-    res <-chan interface{}
+    // Request channel
+    req chan<- Interface
+    // Response channel
+    res <-chan Interface
+    // Filename to open
     filename string
+    // If enable do debug logging
+    debug bool
 }
 
-func NewGoScan(text []byte) *Goscan {
-    var res = make( chan interface{} )
-    var req  = make( chan interface{} )
+// Create a new instance of Goscan. Subsequently Scanner interface can be used
+// on this object.
+func NewGoScan(text []byte, options map[string]Interface) *Goscan {
+    var res = make( chan Interface )
+    var req = make( chan Interface )
     rd := bytes.NewReader( text )
     go doscan( req, res, rd )
-    return &Goscan{ req: req, res: res, text:text }
+    debug := golib.Bool(options["debug"], false)
+    return &Goscan{ req: req, res: res, text:text, debug:debug }
 }
 
+// Return the plain text from input file.
 func (s *Goscan) Text() []byte {
     return s.text
 }
 
 func (s *Goscan) Scan() Token {
-    var cmd = make([]interface{}, 1)
+    var cmd = make([]Interface, 1)
     cmd[0] = "scan"
     s.req<-cmd
     res := (<-s.res).(Token)
-    //fmt.Println(res)
+    if s.debug {
+        fmt.Println(res)
+    }
     return res
 }
 
 func (s *Goscan) Next() Token {
-    var cmd = make([]interface{}, 1)
+    var cmd = make([]Interface, 1)
     cmd[0] = "next"
     s.req<- cmd
     res := (<-s.res).(Token)
@@ -42,7 +57,7 @@ func (s *Goscan) Next() Token {
 }
 
 func (s *Goscan) Peek(offset int) Token {
-    var cmd = make([]interface{}, 2)
+    var cmd = make([]Interface, 2)
     cmd[0] = "peek"
     cmd[1] = offset
     s.req <- cmd
@@ -52,14 +67,14 @@ func (s *Goscan) Peek(offset int) Token {
 }
 
 func (s *Goscan) BookMark() int {
-    var cmd = make([]interface{}, 2)
+    var cmd = make([]Interface, 2)
     cmd[0] = "bookmark"
     s.req <- cmd
     return (<-s.res).(int)
 }
 
 func (s *Goscan) Rewind(offset int) {
-    var cmd = make([]interface{}, 2)
+    var cmd = make([]Interface, 2)
     cmd[0] = "rewind"
     cmd[1] = offset
     s.req <- cmd
@@ -69,14 +84,14 @@ func (s *Goscan) Rewind(offset int) {
 
 // This tokenizer is using text/scanner package. Make it generic so that
 // parsec can be converted to a separate package.
-func doscan( req <-chan interface{}, res chan<- interface{}, src io.Reader ) {
+func doscan( req <-chan Interface, res chan<- Interface, src io.Reader ) {
     var s scanner.Scanner
     var curtok = 0
 
     s.Init(src)
     toks := fullscan(&s)
     for {
-        cmd := (<-req).([]interface{})
+        cmd := (<-req).([]Interface)
         switch cmd[0].(string) {
         case "bookmark" :
             res <- curtok
@@ -113,3 +128,42 @@ func fullscan( s *scanner.Scanner ) []Token {
     }
     return toks
 }
+
+// Parsec functions to match special strings.
+func Terminalize(matchval string, n string, v string ) Parsec {
+    return func() Parser {
+        return func(s Scanner) ParsecNode {
+            tok := s.Peek(0)
+            if matchval == tok.Value {
+                s.Scan()
+                return &Terminal{Name:n, Value:v, Tok:tok}
+            } else {
+                return nil
+            }
+        }
+    }
+}
+
+// Parsec functions to match `String`, `Char`, `Int`, `Float` literals
+func Literal() Parser {
+    return func(s Scanner) ParsecNode {
+        //fmt.Println("Literal")
+        tok := s.Peek(0)
+        if tok.Type == "String" {
+            s.Scan()
+            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
+        } else if tok.Type == "Char" {
+            s.Scan()
+            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
+        } else if tok.Type == "Int" {
+            s.Scan()
+            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
+        } else if tok.Type == "Float" {
+            s.Scan()
+            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
+        } else {
+            return nil
+        }
+    }
+}
+

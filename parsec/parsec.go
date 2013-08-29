@@ -1,22 +1,45 @@
+// Package parsec implements a library of parser-combinators using basic
+// recognizers like,
+//      And, OrdChoice, Kleene, Many and Maybe.
 package parsec
-import ("fmt"; "text/scanner")
+import (
+    "fmt"
+    "text/scanner"
+)
 
-type ParsecNode interface{}
-type Parsec func() Parser
-type Parser func(Scanner) ParsecNode
+type Interface interface{}
+type ParsecNode interface{}             // Can be used to construct AST.
+type Parsec func() Parser               // Combinable parsers.
+type Parser func(Scanner) ParsecNode    // Lazy evaluation of combinable parsers
 type Nodify func( []ParsecNode ) ParsecNode
-type Scanner interface {
-    Scan() Token
-    Peek(int) Token
-    Next() Token
-    BookMark() int
-    Rewind(int)
-    Text() []byte
-}
+
+// lexer tool for parser functions. Make sense only for terminal recognizers.
+// Non-terminal recognizers simply pass them down. A default scanner is
+// available using golang's text/scanner package.
 type Token struct {
     Type string
     Value string
     Pos scanner.Position
+}
+type Scanner interface {
+    // Scan will read the next token from input stream and return a `Token`
+    // instance.
+    Scan() Token
+
+    // Peek will lookhead for nth token from input stream and return a `Token`
+    // instance. This function does not consume input.
+    Peek(int) Token
+
+    // Same as Peek(1).
+    Next() Token
+
+    // Bookmark returns a token offset. When parsec tool decides to backtrack,
+    // this toke offset can be used to rewind back the token stream.
+    BookMark() int
+    Rewind(int)
+
+    // Return the input text stream as byte-slice.
+    Text() []byte
 }
 type Terminal struct {
     Name string         // typically contains terminal's token type
@@ -48,7 +71,11 @@ func And( name string, callb Nodify, assert bool, parsecs ...Parsec ) Parsec {
                 }
                 ns = append(ns, n)
             }
-            return docallback(callb, ns)
+            if len(ns) == 0 { 
+                return docallback(callb, nil)
+            } else {
+                return docallback(callb, ns)
+            }
         }
     }
 }
@@ -95,7 +122,11 @@ func Kleene( name string, callb Nodify, parsecs ...Parsec ) Parsec {
                     break
                 }
             }
-            return docallback( callb, ns )
+            if len(ns) == 0 { 
+                return docallback(callb, nil)
+            } else {
+                return docallback(callb, ns)
+            }
         }
     }
 }
@@ -144,44 +175,6 @@ func Maybe( name string, callb Nodify, parsec Parsec ) Parsec {
                 return docallback(callb, nil)
             }
             return docallback( callb, []ParsecNode{n} )
-        }
-    }
-}
-
-
-// Parsec functions to match special strings.
-func Terminalize(matchval string, n string, v string ) Parsec {
-    return func() Parser {
-        return func(s Scanner) ParsecNode {
-            tok := s.Peek(0)
-            if matchval == tok.Value {
-                s.Scan()
-                return &Terminal{Name:n, Value:v, Tok:tok}
-            } else {
-                return nil
-            }
-        }
-    }
-}
-
-// Parsec functions to match `String`, `Char`, `Int`, `Float` literals
-func Literal() Parser {
-    return func(s Scanner) ParsecNode {
-        tok := s.Peek(0)
-        if tok.Type == "String" {
-            s.Scan()
-            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
-        } else if tok.Type == "Char" {
-            s.Scan()
-            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
-        } else if tok.Type == "Int" {
-            s.Scan()
-            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
-        } else if tok.Type == "Float" {
-            s.Scan()
-            return &Terminal{Name:tok.Type, Value:tok.Value, Tok:tok}
-        } else {
-            return nil
         }
     }
 }

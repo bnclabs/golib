@@ -30,7 +30,9 @@ func BenchmarkScanner(b *testing.B) {
 }
 
 func BenchmarkGoscan(b *testing.B) {
-    scanner := NewGoScan(testfile)
+    options := make(map[string]Interface)
+    text, _ := ioutil.ReadFile(testfile)
+    scanner := NewGoScan(text, options)
     for {
         tok := scanner.Scan()
         if tok.Type == "EOF" { break }
