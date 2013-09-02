@@ -1,1 +1,1 @@
-Parser library using top-down recursive backtracking using parser-combinators.
+Parser library using top-down recursive backtracking employing parser-combinators.
