@@ -1,6 +1,7 @@
 package parsec
 
 import (
+    "fmt"
     "github.com/prataprc/golib"
     "io/ioutil"
     "os"
@@ -8,6 +9,7 @@ import (
     "text/scanner"
 )
 
+var _ = fmt.Sprintf("Dummy")
 var testfile = "./sampletest"
 
 func BenchmarkPrepare(b *testing.B) {
@@ -27,7 +29,7 @@ func BenchmarkScanner(b *testing.B) {
     var s scanner.Scanner
     fd, _ := os.Open(testfile)
     s.Init(fd)
-    for {
+    for i := 0; i < b.N; i++ {
         tok := Token{
             Type:  scanner.TokenString(s.Scan()),
             Value: s.TokenText(),
@@ -43,7 +45,7 @@ func BenchmarkGoscan(b *testing.B) {
     config := make(golib.Config)
     text, _ := ioutil.ReadFile(testfile)
     scanner := NewGoScan(text, config)
-    for {
+    for i := 0; i < b.N; i++ {
         tok := scanner.Scan()
         if tok.Type == "EOF" {
             break
