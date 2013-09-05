@@ -1,49 +1,56 @@
 package parsec
 
+import (
+    "fmt"
+)
+
+var _ = fmt.Sprintf("keep 'fmt' import during debugging");
+
 // Parsec functions to match special strings.
-func Tokenof(pattern string, n string) Parsec {
-    return func() Parser {
-        return func(s Scanner) ParsecNode {
-            if tok := s.Match(pattern); tok != nil {
-                return &Terminal{Name: n, Tok: tok}
-            } else {
-                return nil
-            }
+func Token(pattern string, n string) Parser {
+    return func(s Scanner) (ParsecNode, *Scanner) {
+        news := &s
+        if ws, newss := s.SkipWS(); ws != nil {
+            news = newss
+        }
+        if tok, newss := (*news).Match(pattern); tok != nil {
+            t := Terminal{Name: n, Value: string(tok), Position:news.cursor}
+            return &t, newss
+        } else {
+            return nil, news
         }
     }
 }
 
-// Parsec functions to match `String`, `Char`, `Int`, `Float` literals
-func Literalof(name string) Parsec {
-    return func() Parser {
-        return func(s Scanner) ParsecNode {
-            if tok := s.Literal(name); tok != nil {
-                return &Terminal{Name: tok.Type, Value: tok.Value, Tok: tok}
-            } else {
-                return nil
-            }
-        }
-    }
+// Parsec function to detect end/not-end-of of scanner output.
+func End(s Scanner) (ParsecNode, *Scanner) {
+    return s.Endof(), &s
 }
 
-// Parsec function to detect end of scanner output.
-func End() Parser {
-    return func(s Scanner) ParsecNode {
-        tok := s.Next()
-        if tok.Type == "EOF" {
-            return &Terminal{Name: tok.Type, Value: tok.Value, Tok: tok}
-        }
-        return nil
-    }
+func NoEnd(s Scanner) (ParsecNode, *Scanner) {
+    return !s.Endof(), &s
 }
 
-// Parsec function to detect end of scanner output.
-func NoEnd() Parser {
-    return func(s Scanner) ParsecNode {
-        tok := s.Next()
-        if tok.Type != "EOF" {
-            return &Terminal{Name: tok.Type, Value: tok.Value, Tok: tok}
-        }
-        return nil
-    }
+// Parsec functions to match literals
+func String() Parser {
+    return Token(`^"(\.|[^"])*"`, "STRING")
+}
+func Char() Parser {
+    return Token(`^'.'`, "CHAR")
+}
+func Int() Parser {
+    return Token(`^[0-9]+`, "INT")
+}
+func Hex() Parser {
+    return Token(`^0[xX][0-9a-fA-F]+`, "HEX")
+}
+func Oct() Parser {
+    return Token(`^0[0-8]+`, "OCT")
+}
+func Float() Parser {
+    return Token(`^[0-9]*\.[0-9]+`, "FLOAT")
+}
+
+func Ident() Parser {
+    return Token(`^[A-Za-z][0-9a-zA-Z_]*`, "IDENT")
 }

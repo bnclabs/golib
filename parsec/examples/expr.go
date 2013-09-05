@@ -1,143 +1,129 @@
 package main
 import (
     "fmt"
-    "github.com/prataprc/golib"
     "github.com/prataprc/golib/parsec"
     "io/ioutil"
     "os"
     "strconv"
 )
 
+// Terminal rats
+var openparan = parsec.Token(`^\(`, "OPENPARAN")
+var closeparan = parsec.Token(`^\)`, "CLOSEPARAN")
+var addop = parsec.Token(`^\+`, "ADD")
+var subop = parsec.Token(`^-`, "SUB")
+var multop = parsec.Token(`^\*`, "MULT")
+var divop = parsec.Token(`^/`, "DIV")
+
 // Construct parser-combinator for parsing arithmetic expression on integer
-func expr() parsec.Parser {
-    return func(s parsec.Scanner) parsec.ParsecNode {
-        nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
-            if ns == nil {
-                return nil
-            }
-            return ns[0]
-        }
-        return parsec.OrdChoice("expr", nodify, false, sum)()(s)
-    }
-}
-
-func prod() parsec.Parser {
-    return func(s parsec.Scanner) parsec.ParsecNode {
-        nodifyop := func(ns []parsec.ParsecNode) parsec.ParsecNode {
-            if ns == nil {
-                return nil
-            }
-            return ns[0]
-        }
-        op := parsec.OrdChoice("mdop", nodifyop, false, multop, divop)
-        nodifyk := func(ns []parsec.ParsecNode) parsec.ParsecNode {
-            if ns == nil {
-                return nil
-            }
-            return ns
-        }
-        nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
-            if ns != nil {
-                val := ns[0].(int)
-                for _, x := range ns[1].([]parsec.ParsecNode) {
-                    y := x.([]parsec.ParsecNode)
-                    n := y[1].(int)
-                    switch y[0].(*parsec.Terminal).Name {
-                    case "MULT":
-                        val *= n
-                    case "DIV":
-                        val /= n
-                    }
-                }
-                return val
-            }
+func expr(s parsec.Scanner) (parsec.ParsecNode, *parsec.Scanner) {
+    nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
+        if len(ns) == 0 {
             return nil
         }
-        k := parsec.Kleene(
-            "prod2kleene", nil,
-            parsec.And("prod2", nodifyk, false, op, value),
-        )
-        return parsec.And("prod", nodify, false, value, k)()(s)
+        return ns[0]
     }
+    return parsec.OrdChoice(nodify, sum)(s)
 }
-func sum() parsec.Parser {
-    return func(s parsec.Scanner) parsec.ParsecNode {
-        nodifyop := func(ns []parsec.ParsecNode) parsec.ParsecNode {
-            if ns == nil { 
-                return nil
-            }
-            return ns[0]
-        }
-        op := parsec.OrdChoice("asop", nodifyop, false, addop, subop)
-        nodifyk := func(ns []parsec.ParsecNode) parsec.ParsecNode {
-            if ns == nil { return nil }
-            return ns
-        }
-        nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
-            if ns != nil {
-                val := ns[0].(int)
-                for _, x := range ns[1].([]parsec.ParsecNode) {
-                    y := x.([]parsec.ParsecNode)
-                    n := y[1].(int)
-                    switch y[0].(*parsec.Terminal).Name {
-                    case "ADD":
-                        val += n
-                    case "SUB":
-                        val -= n
-                    }
-                }
-                return val
-            }
+
+func prod(s parsec.Scanner) (parsec.ParsecNode, *parsec.Scanner) {
+    nodifyop := func(ns []parsec.ParsecNode) parsec.ParsecNode {
+        if len(ns) == 0 {
             return nil
         }
-        k := parsec.Kleene(
-            "sum2kleene", nil,
-            parsec.And("sum2", nodifyk, false, op, prod),
-        )
-        return parsec.And("sub", nodify, false, prod, k)()(s)
+        return ns[0]
     }
-}
+    op := parsec.OrdChoice(nodifyop, multop, divop)
 
-func groupExpr() parsec.Parser {
-    return func(s parsec.Scanner) parsec.ParsecNode {
-        nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
-            if ns == nil {
-                return nil
-            }
-            return ns[1]
+    nodifyk := func(ns []parsec.ParsecNode) parsec.ParsecNode {
+        if len(ns) == 0 {
+            return nil
         }
-        return parsec.And(
-            "groupExpr", nodify, false, openparan, expr, closeparan,
-        )()(s)
+        return ns
     }
-}
+    opval := parsec.And(nodifyk, op, value)
+    k := parsec.Kleene(nil, opval, nil)
 
-func value() parsec.Parser {
-    return func(s parsec.Scanner) parsec.ParsecNode {
-        nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
-            if ns == nil {
-                return nil
-            } else if n, ok := ns[0].(*parsec.Terminal); ok {
-                if val, err := strconv.Atoi(n.Value); err == nil {
-                    return val
+    nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
+        if len(ns) > 0 {
+            val := ns[0].(int)
+            for _, x := range ns[1].([]parsec.ParsecNode) {
+                y := x.([]parsec.ParsecNode)
+                n := y[1].(int)
+                switch y[0].(*parsec.Terminal).Name {
+                case "MULT":
+                    val *= n
+                case "DIV":
+                    val /= n
                 }
-                fmt.Println("Invalid token", n.Tok)
-                os.Exit(1)
             }
-            return ns[0]
+            return val
         }
-        return parsec.OrdChoice(
-            "value", nodify, false, parsec.Literalof("Int"), groupExpr,
-        )()(s)
+        return nil
     }
+    return parsec.And(nodify, value, k)(s)
 }
 
-var openparan = parsec.Tokenof("\\(", "OPENPARAN")
-var closeparan = parsec.Tokenof("\\)", "CLOSEPARAN")
-var addop = parsec.Tokenof("\\+", "ADD")
-var subop = parsec.Tokenof("-", "SUB")
-var multop = parsec.Tokenof("\\*", "MULT")
-var divop = parsec.Tokenof("/", "DIV")
+func sum(s parsec.Scanner) (parsec.ParsecNode, *parsec.Scanner) {
+    nodifyop := func(ns []parsec.ParsecNode) parsec.ParsecNode {
+        if len(ns) == 0 {
+            return nil
+        }
+        return ns[0]
+    }
+    op := parsec.OrdChoice(nodifyop, addop, subop)
+
+    nodifyk := func(ns []parsec.ParsecNode) parsec.ParsecNode {
+        if len(ns) == 0 {
+            return nil
+        }
+        return ns
+    }
+    opval := parsec.And(nodifyk, op, prod)
+    k := parsec.Kleene(nil, opval, nil)
+
+    nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
+        if len(ns) > 0 {
+            val := ns[0].(int)
+            for _, x := range ns[1].([]parsec.ParsecNode) {
+                y := x.([]parsec.ParsecNode)
+                n := y[1].(int)
+                switch y[0].(*parsec.Terminal).Name {
+                case "ADD":
+                    val += n
+                case "SUB":
+                    val -= n
+                }
+            }
+            return val
+        }
+        return nil
+    }
+    return parsec.And(nodify, prod, k)(s)
+}
+
+func groupExpr(s parsec.Scanner) (parsec.ParsecNode, *parsec.Scanner) {
+    nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
+        if len(ns) == 0 {
+            return nil
+        }
+        return ns[1]
+    }
+    return parsec.And( nodify, openparan, expr, closeparan)(s)
+}
+
+func value(s parsec.Scanner) (parsec.ParsecNode, *parsec.Scanner) {
+    nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
+        if len(ns) == 0 {
+            return nil
+        } else if term, ok := ns[0].(*parsec.Terminal); ok {
+            val, _ := strconv.Atoi(term.Value)
+            return val
+        }
+        return ns[0]
+    }
+    return parsec.OrdChoice(nodify, parsec.Int(), groupExpr)(s)
+}
 
 func main() {
     if len(os.Args) < 2 {
@@ -145,7 +131,7 @@ func main() {
         os.Exit(1)
     }
     text, _ := ioutil.ReadFile(os.Args[1])
-    s := parsec.NewGoScan(text, make(golib.Config))
-    val := expr()(s)
-    fmt.Println(val)
+    s := parsec.NewScanner(text)
+    val, news := expr(*s)
+    fmt.Println(val, news)
 }
