@@ -3,6 +3,7 @@ To know more about theory of parser combinators,
 refer to : http://en.wikipedia.org/wiki/Parser_combinator
 
 This package contains following components,
+
 * standard set of combinators, parsing algorithms can create input specific
   combinator functions on top of the standard set.
 * regular expression based scanner.
