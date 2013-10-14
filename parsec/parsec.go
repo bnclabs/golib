@@ -8,7 +8,7 @@ import (
     "fmt"
 )
 
-var _ = fmt.Sprintf("keep 'fmt' import during debugging");
+var _ = fmt.Sprintf("keep 'fmt' import for debugging");
 
 type ParsecNode interface{} // Can be used to construct AST.
 type Parser func(Scanner) (ParsecNode, *Scanner) // combinable parsers

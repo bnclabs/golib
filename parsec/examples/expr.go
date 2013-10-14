@@ -15,6 +15,16 @@ var subop = parsec.Token(`^-`, "SUB")
 var multop = parsec.Token(`^\*`, "MULT")
 var divop = parsec.Token(`^/`, "DIV")
 
+// expr  -> sum
+// prod  -> (mulop value)*
+// mulop -> "*"
+//       |  "/"
+// sum   -> (addop prod)*
+// addop -> "+"
+//       |  "-"
+// value -> num
+//       | ( expr )
+
 // Construct parser-combinator for parsing arithmetic expression on integer
 func expr(s parsec.Scanner) (parsec.ParsecNode, *parsec.Scanner) {
     nodify := func(ns []parsec.ParsecNode) parsec.ParsecNode {
