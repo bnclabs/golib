@@ -19,6 +19,8 @@ func NewScanner(text []byte) *Scanner {
     return &Scanner{text, 0}
 }
 
+// Match current input with `pattern` regular expression. Return, matching
+// token as byte-slice and a new-instance of scanner with advanced cursor.
 func (s Scanner) Match(pattern string) ([]byte, *Scanner) {
     if pattern[0] != '^' {
         panic("match patterns must begin with `^`")
@@ -41,10 +43,13 @@ func (s Scanner) Match(pattern string) ([]byte, *Scanner) {
     return nil, &s
 }
 
+// Skip whitespace. Return skipped whitespaces as byte-slice and new instance
+// of scanner with advanced cursor.
 func (s Scanner) SkipWS() ([]byte, *Scanner) {
     return s.Match(`^[ \t\r\n]+`)
 }
 
+// Detect end-of-file in the input return a boolean indicating the same.
 func (s Scanner) Endof() bool {
     if s.cursor >= len(s.buf) {
         return true
