@@ -102,5 +102,16 @@ buffer. Create a new scanner instance,
     s := parsec.NewScanner(text)
     rootParser(s)
 
-the scanner library supplies method receivers like `Match()`, `SkipWS` and
+the scanner library supplies method receivers like `Match()`, `SkipWS()` and
 `Endof()`. refer to scanner.go for more information on each of these methods.
+
+Check out this example program that uses `parsec` tool to do arithmetic
+expression evaluation for integers,
+https://github.com/prataprc/golib/blob/master/parsec/examples/expr.go.
+
+.. code-block:: bash
+
+    > cd examples/
+    > go run expr.go eg.expr
+
+to run the example program.

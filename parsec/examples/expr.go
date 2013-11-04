@@ -5,6 +5,7 @@ import (
     "io/ioutil"
     "os"
     "strconv"
+    "time"
 )
 
 // Terminal rats
@@ -142,6 +143,11 @@ func main() {
     }
     text, _ := ioutil.ReadFile(os.Args[1])
     s := parsec.NewScanner(text)
-    val, news := expr(*s)
-    fmt.Println(val, news)
+    count := int64(10000)
+    t1 := time.Now().UnixNano()
+    for i := int64(0); i < count; i++ {
+        expr(*s)
+    }
+    t2 := time.Now().UnixNano()
+    fmt.Printf("Takes %vnS to evaluate \n", (t2 - t1) / count)
 }
