@@ -1,0 +1,6 @@
+isformedbytheparticipantnodes.EachnodeisidentifiedbyanumberornodeID.
+ThenodeIDservesnotonlyasidentification,buttheKademliaalgorithmusesthenodeID
+tolocatevalues(usuallyfilehashesorkeywords).Infact,thenodeIDprovidesadirect
+maptofilehashesandthatnodestoresinformationonwheretoobtainthefileor
+PASS
+ok  	github.com/prataprc/golib/strings	0.011s
