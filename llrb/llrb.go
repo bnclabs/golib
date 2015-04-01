@@ -24,7 +24,7 @@ type LLRB struct {
 
 // Key implements an entry in the tree.
 type Key interface {
-	// Size returns the about of data held by this object.
+	// Size returns the size f data held by this object.
 	Size() int
 
 	// Less return true of this key lesser.
@@ -136,7 +136,7 @@ func (t *LLRB) InsertBulk(keys ...Key) {
 // tree and returned.
 func (t *LLRB) Upsert(key Key) Key {
 	if key == nil {
-		panic("inserting nil key")
+		panic("upserting nil key")
 	}
 	var replaced Key
 	t.root, replaced = t.upsert(t.root, key)

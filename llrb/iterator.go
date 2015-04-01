@@ -1,11 +1,5 @@
 package llrb
 
-type KeyIterator func(Key) bool
-
-//func (t *Tree) Ascend(iterator KeyIterator) {
-//  t.AscendGreaterOrEqual(Inf(-1), iterator)
-//}
-
 func (t *LLRB) AscendRange(greaterOrEqual, lessThan Key, iterator KeyIterator) {
 	t.ascendRange(t.root, greaterOrEqual, lessThan, iterator)
 }
@@ -30,8 +24,9 @@ func (t *LLRB) ascendRange(h *Node, inf, sup Key, iterator KeyIterator) bool {
 	return t.ascendRange(h.Right, inf, sup, iterator)
 }
 
-// AscendGreaterOrEqual will call iterator once for each element greater or equal to
-// pivot in ascending order. It will stop whenever the iterator returns false.
+// AscendGreaterOrEqual will call iterator once for each element greater
+// or equal to pivot in ascending order. It will stop whenever the iterator
+// returns false.
 func (t *LLRB) AscendGreaterOrEqual(pivot Key, iterator KeyIterator) {
 	t.ascendGreaterOrEqual(t.root, pivot, iterator)
 }

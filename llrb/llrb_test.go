@@ -5,10 +5,13 @@
 package llrb
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"testing"
 )
+
+var _ = fmt.Sprintf("dummpy print")
 
 func TestCases(t *testing.T) {
 	tree := NewLLRB()
@@ -45,7 +48,7 @@ func TestReverseInsertOrder(t *testing.T) {
 		tree.Upsert(KeyInt(n - i))
 	}
 	i := 0
-	tree.AscendGreaterOrEqual(KeyInt(0), func(key Key) bool {
+	tree.Range(KeyInt(0), KeyInt(100), "high", func(key Key) bool {
 		i++
 		if key.(KeyInt) != KeyInt(i) {
 			t.Errorf("bad order: got %d, expect %d", key.(KeyInt), i)
@@ -63,7 +66,7 @@ func TestRange(t *testing.T) {
 		tree.Upsert(i)
 	}
 	k := 0
-	tree.AscendRange(KeyString("ab"), KeyString("ac"), func(key Key) bool {
+	tree.Range(KeyString("ab"), KeyString("ac"), "low", func(key Key) bool {
 		if k > 3 {
 			t.Fatalf("returned more keys than expected")
 		}
@@ -85,7 +88,7 @@ func TestRandomInsertOrder(t *testing.T) {
 		tree.Upsert(KeyInt(perm[i]))
 	}
 	j := 0
-	tree.AscendGreaterOrEqual(KeyInt(0), func(key Key) bool {
+	tree.Range(KeyInt(-1), KeyInt(1000), "none", func(key Key) bool {
 		if key.(KeyInt) != KeyInt(j) {
 			t.Fatalf("bad order")
 		}
@@ -103,7 +106,8 @@ func TestRandomReplace(t *testing.T) {
 	}
 	perm = rand.Perm(n)
 	for i := 0; i < n; i++ {
-		if replaced := tree.Upsert(KeyInt(perm[i])); replaced == nil || replaced.(KeyInt) != KeyInt(perm[i]) {
+		replaced := tree.Upsert(KeyInt(perm[i]))
+		if replaced == nil || replaced.(KeyInt) != KeyInt(perm[i]) {
 			t.Errorf("error replacing")
 		}
 	}
@@ -158,7 +162,7 @@ func TestRandomInsertPartialDeleteOrder(t *testing.T) {
 		tree.Delete(KeyInt(i))
 	}
 	j := 0
-	tree.AscendGreaterOrEqual(KeyInt(0), func(key Key) bool {
+	tree.Range(KeyInt(0), KeyInt(100), "low", func(key Key) bool {
 		switch j {
 		case 0:
 			if key.(KeyInt) != KeyInt(0) {
@@ -186,6 +190,25 @@ func TestRandomInsertStats(t *testing.T) {
 	if math.Abs(avg-expAvg) >= 2.0 {
 		t.Errorf("too much deviation from expected average height")
 	}
+}
+
+func TestInsertNoReplace(t *testing.T) {
+	tree := NewLLRB()
+	n := 1000
+	for q := 0; q < 2; q++ {
+		perm := rand.Perm(n)
+		for i := 0; i < n; i++ {
+			tree.Insert(KeyInt(perm[i]))
+		}
+	}
+	j := 0
+	tree.Range(KeyInt(-1), KeyInt(999), "high", func(key Key) bool {
+		if key.(KeyInt) != KeyInt(j/2) {
+			t.Fatalf("bad order")
+		}
+		j++
+		return true
+	})
 }
 
 func BenchmarkInsert(b *testing.B) {
@@ -217,23 +240,4 @@ func BenchmarkDeleteMin(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		tree.DeleteMin()
 	}
-}
-
-func TestInsertNoReplace(t *testing.T) {
-	tree := NewLLRB()
-	n := 1000
-	for q := 0; q < 2; q++ {
-		perm := rand.Perm(n)
-		for i := 0; i < n; i++ {
-			tree.Insert(KeyInt(perm[i]))
-		}
-	}
-	j := 0
-	tree.AscendGreaterOrEqual(KeyInt(0), func(key Key) bool {
-		if key.(KeyInt) != KeyInt(j/2) {
-			t.Fatalf("bad order")
-		}
-		j++
-		return true
-	})
 }
