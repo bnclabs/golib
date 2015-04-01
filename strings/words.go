@@ -1,9 +1,7 @@
 package strings
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
+import "strings"
 
 func FormatMultiColumn(words []string, columns int) (lines []string) {
 	avg := AverageWorldlen(words) + 2
