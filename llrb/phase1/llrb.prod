@@ -1,0 +1,24 @@
+s : operations
+
+operations : (weigh 0.2) operation ", " operations
+           | operation.
+
+operation  : (weigh 0.3) get
+           | (weigh 0.3) min
+           | (weigh 0.4) max
+           | (weigh 0.2) delmin
+           | (weigh 0.2) delmax
+           | (weigh 0.2) upsert
+           | (weigh 0.2) insert
+           | (weigh 0.2) delete.
+
+get    : "[ " "get, " key " ]".
+min    : "[ " "min" " ]".
+max    : "[ " "max" " ]".
+delmin : "[ " "delmin" " ]".
+delmax : "[ " "delmax" " ]".
+upsert : "[ " "upsert, " key " ]".
+insert : "[ " "insert, " key " ]".
+delete : "[ " "delete " " ]".
+
+key    : (bag "./web2") (bag "./web2") (range 0 1000000000)
