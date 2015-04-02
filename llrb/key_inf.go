@@ -6,12 +6,12 @@ var pinf = pInf{}
 
 type nInf struct{}
 
-// Less implements the Key interface.
-func (nInf) Less(Key) bool {
+// Less implements the Item interface.
+func (nInf) Less(Item) bool {
 	return true
 }
 
-// Size implements the Key interface.
+// Size implements the Item interface.
 func (nInf) Size() int {
 	return 0
 }
@@ -19,7 +19,7 @@ func (nInf) Size() int {
 type pInf struct{}
 
 // Less implements the key interface.
-func (pInf) Less(Key) bool {
+func (pInf) Less(Item) bool {
 	return false
 }
 
@@ -28,10 +28,10 @@ func (pInf) Size() int {
 	return 0
 }
 
-// Inf returns an Key that is "bigger than" any other key,
-// if sign is positive. Otherwise  it returns an Key that
+// Inf returns an Item that is "bigger than" any other key,
+// if sign is positive. Otherwise  it returns an Item that
 // is "smaller than" any other key.
-func Inf(sign int) Key {
+func Inf(sign int) Item {
 	if sign == 0 {
 		panic("sign")
 	}

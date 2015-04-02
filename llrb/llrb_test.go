@@ -48,9 +48,9 @@ func TestReverseInsertOrder(t *testing.T) {
 		tree.Upsert(KeyInt{int64(n - i), -1})
 	}
 	i := 0
-	tree.Range(KeyInt{0, -1}, KeyInt{100, -1}, "high", func(key Key) bool {
+	tree.Range(KeyInt{0, -1}, KeyInt{100, -1}, "high", func(key Item) bool {
 		i++
-		if key.(KeyInt).key != int64(i) {
+		if key.(KeyInt).Key != int64(i) {
 			t.Errorf("bad order: got %d, expect %d", key.(KeyInt), i)
 		}
 		return true
@@ -75,12 +75,12 @@ func TestRange(t *testing.T) {
 	}
 	k := 0
 	low, high := KeyString{"ab", -1}, KeyString{"ac", -1}
-	tree.Range(low, high, "low", func(key Key) bool {
+	tree.Range(low, high, "low", func(key Item) bool {
 		if k > 3 {
 			t.Fatalf("returned more keys than expected")
 		}
-		i1 := order[k].key
-		i2 := key.(KeyString).key
+		i1 := order[k].Key
+		i2 := key.(KeyString).Key
 		if i1 != i2 {
 			t.Errorf("expecting %s, got %s", i1, i2)
 		}
@@ -97,8 +97,8 @@ func TestRandomInsertOrder(t *testing.T) {
 		tree.Upsert(KeyInt{int64(perm[i]), -1})
 	}
 	j := 0
-	tree.Range(KeyInt{-1, -1}, KeyInt{1000, -1}, "none", func(key Key) bool {
-		if key.(KeyInt).key != int64(j) {
+	tree.Range(KeyInt{-1, -1}, KeyInt{1000, -1}, "none", func(key Item) bool {
+		if key.(KeyInt).Key != int64(j) {
 			t.Fatalf("bad order")
 		}
 		j++
@@ -116,7 +116,7 @@ func TestRandomReplace(t *testing.T) {
 	perm = rand.Perm(n)
 	for i := 0; i < n; i++ {
 		replaced := tree.Upsert(KeyInt{int64(perm[i]), -1})
-		if replaced == nil || replaced.(KeyInt).key != int64(perm[i]) {
+		if replaced == nil || replaced.(KeyInt).Key != int64(perm[i]) {
 			t.Errorf("error replacing")
 		}
 	}
@@ -149,7 +149,7 @@ func TestRandomInsertDeleteNonExistent(t *testing.T) {
 	}
 	for i := 0; i < n; i++ {
 		u := tree.Delete(KeyInt{int64(i), -1})
-		if u == nil || u.(KeyInt).key != int64(i) {
+		if u == nil || u.(KeyInt).Key != int64(i) {
 			t.Errorf("delete failed")
 		}
 	}
@@ -172,14 +172,14 @@ func TestRandomInsertPartialDeleteOrder(t *testing.T) {
 		tree.Delete(KeyInt{int64(i), -1})
 	}
 	j := 0
-	tree.Range(KeyInt{0, -1}, KeyInt{100, -1}, "low", func(key Key) bool {
+	tree.Range(KeyInt{0, -1}, KeyInt{100, -1}, "low", func(key Item) bool {
 		switch j {
 		case 0:
-			if key.(KeyInt).key != int64(0) {
+			if key.(KeyInt).Key != int64(0) {
 				t.Errorf("expecting 0")
 			}
 		case 1:
-			if key.(KeyInt).key != int64(n-1) {
+			if key.(KeyInt).Key != int64(n-1) {
 				t.Errorf("expecting %d", n-1)
 			}
 		}
@@ -212,8 +212,8 @@ func TestInsertNoReplace(t *testing.T) {
 		}
 	}
 	j := 0
-	tree.Range(KeyInt{-1, -1}, KeyInt{999, -1}, "high", func(key Key) bool {
-		if key.(KeyInt).key != int64(j/2) {
+	tree.Range(KeyInt{-1, -1}, KeyInt{999, -1}, "high", func(key Item) bool {
+		if key.(KeyInt).Key != int64(j/2) {
 			t.Fatalf("bad order")
 		}
 		j++

@@ -4,24 +4,25 @@
 
 package llrb
 
-// GetHeight() returns an key in the tree with key @key, and it's height in the tree
-func (t *LLRB) GetHeight(key Key) (result Key, depth int) {
+// GetHeight() returns an item in the tree with key @key,
+// and it's height in the tree
+func (t *LLRB) GetHeight(key Item) (result Item, depth int) {
 	return t.getHeight(t.root, key)
 }
 
-func (t *LLRB) getHeight(h *Node, key Key) (Key, int) {
+func (t *LLRB) getHeight(h *Node, key Item) (Item, int) {
 	if h == nil {
 		return nil, 0
 	}
-	if key.Less(h.Key) {
+	if key.Less(h.Item) {
 		result, depth := t.getHeight(h.Left, key)
 		return result, depth + 1
 	}
-	if h.Key.Less(key) {
+	if h.Item.Less(key) {
 		result, depth := t.getHeight(h.Right, key)
 		return result, depth + 1
 	}
-	return h.Key, 0
+	return h.Item, 0
 }
 
 // HeightStats() returns the average and standard deviation of the height

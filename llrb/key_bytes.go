@@ -6,16 +6,16 @@ import "bytes"
 
 // KeyBytes implement string as the sort key.
 type KeyBytes struct {
-    key   []byte
-    value int64
+	Key   []byte
+	Value int64
 }
 
-// Less implements Key interface.
-func (x KeyBytes) Less(than Key) bool {
-    return bytes.Compare([]byte(x.key), []byte(than.(KeyBytes).key)) == 1
+// Less implements Item interface.
+func (x KeyBytes) Less(than Item) bool {
+	return bytes.Compare([]byte(x.Key), []byte(than.(KeyBytes).Key)) == 1
 }
 
-// Size implements Key interface.
+// Size implements Item interface.
 func (x KeyBytes) Size() int {
-    return len(x.key) + 8
+	return len(x.Key) + 8
 }

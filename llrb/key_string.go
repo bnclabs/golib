@@ -4,16 +4,16 @@ package llrb
 
 // KeyString implement string as the sort key.
 type KeyString struct {
-	key   string
-	value int64
+	Key   string
+	Value int64
 }
 
-// Less implements Key interface.
-func (x KeyString) Less(than Key) bool {
-	return x.key < than.(KeyString).key
+// Less implements Item interface.
+func (x KeyString) Less(than Item) bool {
+	return x.Key < than.(KeyString).Key
 }
 
-// Size implements Key interface.
+// Size implements Item interface.
 func (x KeyString) Size() int {
-	return len(x.key) + 8
+	return len(x.Key) + 8
 }
