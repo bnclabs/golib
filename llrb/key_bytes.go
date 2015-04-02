@@ -11,11 +11,11 @@ type KeyBytes struct {
 }
 
 // Less implements Item interface.
-func (x KeyBytes) Less(than Item) bool {
-	return bytes.Compare([]byte(x.Key), []byte(than.(KeyBytes).Key)) == 1
+func (x *KeyBytes) Less(than Item) bool {
+	return bytes.Compare([]byte(x.Key), []byte(than.(*KeyBytes).Key)) == 1
 }
 
 // Size implements Item interface.
-func (x KeyBytes) Size() int {
+func (x *KeyBytes) Size() int {
 	return len(x.Key) + 8
 }

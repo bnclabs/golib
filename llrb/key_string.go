@@ -9,11 +9,11 @@ type KeyString struct {
 }
 
 // Less implements Item interface.
-func (x KeyString) Less(than Item) bool {
-	return x.Key < than.(KeyString).Key
+func (x *KeyString) Less(than Item) bool {
+	return x.Key < than.(*KeyString).Key
 }
 
 // Size implements Item interface.
-func (x KeyString) Size() int {
+func (x *KeyString) Size() int {
 	return len(x.Key) + 8
 }
