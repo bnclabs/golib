@@ -1,5 +1,3 @@
-// Derived work from Petar Maymounkov
-
 package llrb
 
 // KeyInt implements int64 as the sort key.

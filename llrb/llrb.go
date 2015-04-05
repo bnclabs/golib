@@ -1,5 +1,3 @@
-// Derived work from Petar Maymounkov
-
 // A Left-Leaning Red-Black (LLRB) implementation of 2-3 balanced
 // binary search trees, based on the following work:
 //
@@ -12,7 +10,6 @@
 // Java, and other libraries. The LLRB implementation of 2-3 trees
 // is a recent improvement on the traditional implementation,
 // observed and documented by Robert Sedgewick.
-
 package llrb
 
 // LLRB is a Left-Leaning Red-Black (LLRB) implementation of 2-3 trees

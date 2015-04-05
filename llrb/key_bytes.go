@@ -1,5 +1,3 @@
-// Derived work from Petar Maymounkov
-
 package llrb
 
 import "bytes"

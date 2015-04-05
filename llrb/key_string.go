@@ -1,5 +1,3 @@
-// Derived work from Petar Maymounkov
-
 package llrb
 
 // KeyString implement string as the sort key.
