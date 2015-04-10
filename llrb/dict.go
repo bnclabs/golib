@@ -11,6 +11,14 @@ func NewDict() *Dict {
 	return &Dict{dict: make(map[int]int64)}
 }
 
+func (d *Dict) Clone() *Dict {
+	newd := &Dict{dict: make(map[int]int64), size: d.size}
+	for k, v := range d.dict {
+		newd.dict[k] = v
+	}
+	return newd
+}
+
 func (d *Dict) Len() int {
 	return len(d.dict)
 }
@@ -89,11 +97,10 @@ func (d *Dict) InsertBulk(keys ...Item) {
 	}
 }
 
-func (d *Dict) Insert(key Item) Item {
+func (d *Dict) Insert(key Item) {
 	kint := key.(*KeyInt)
 	d.dict[int(kint.Key)] = kint.Value
 	d.size += 16
-	return kint
 }
 
 func (d *Dict) Delete(key Item) Item {

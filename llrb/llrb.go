@@ -12,28 +12,12 @@
 // observed and documented by Robert Sedgewick.
 package llrb
 
-// LLRB is a Left-Leaning Red-Black (LLRB) implementation of 2-3 trees
+// LLRB is a Left-Leaning Red-Black (LLRB) implementation
+// of 2-3 trees
 type LLRB struct {
 	count int
 	size  int
 	root  *Node
-}
-
-// Item implements an entry in the tree.
-type Item interface {
-	// Size returns the size f data held by this object.
-	Size() int
-
-	// Less return true of this key lesser.
-	Less(than Item) bool
-}
-
-// Node in LLRB tree.
-type Node struct {
-	Item
-	Left, Right *Node // Pointers to left and right child nodes
-	Black       bool  // If set, the color of the link (incoming from the parent) is black
-	// In the LLRB, new nodes are always red, hence the zero-value for node
 }
 
 //-----
@@ -390,10 +374,10 @@ func (t *LLRB) rangeFromFind(h *Node, low, high Item, iter KeyIterator) bool {
 	if h == nil {
 		return true
 	}
-	if high.Less(h.Item) {
+	if high != nil && high.Less(h.Item) {
 		return t.rangeFromFind(h.Left, low, high, iter)
 	}
-	if h.Item.Less(low) {
+	if low != nil && h.Item.Less(low) {
 		return t.rangeFromFind(h.Right, low, high, iter)
 	}
 	if !t.rangeFromFind(h.Left, low, high, iter) {
@@ -410,10 +394,10 @@ func (t *LLRB) rangeFromTill(h *Node, low, high Item, iter KeyIterator) bool {
 	if h == nil {
 		return true
 	}
-	if !h.Item.Less(high) {
+	if high != nil && !h.Item.Less(high) {
 		return t.rangeFromTill(h.Left, low, high, iter)
 	}
-	if h.Item.Less(low) {
+	if low != nil && h.Item.Less(low) {
 		return t.rangeFromTill(h.Right, low, high, iter)
 	}
 	if !t.rangeFromTill(h.Left, low, high, iter) {
@@ -430,10 +414,10 @@ func (t *LLRB) rangeAfterFind(h *Node, low, high Item, iter KeyIterator) bool {
 	if h == nil {
 		return true
 	}
-	if high.Less(h.Item) {
+	if high != nil && high.Less(h.Item) {
 		return t.rangeAfterFind(h.Left, low, high, iter)
 	}
-	if !low.Less(h.Item) {
+	if low != nil && !low.Less(h.Item) {
 		return t.rangeAfterFind(h.Right, low, high, iter)
 	}
 	if !t.rangeAfterFind(h.Left, low, high, iter) {
@@ -450,10 +434,10 @@ func (t *LLRB) rangeAfterTill(h *Node, low, high Item, iter KeyIterator) bool {
 	if h == nil {
 		return true
 	}
-	if !h.Item.Less(high) {
+	if high != nil && !h.Item.Less(high) {
 		return t.rangeAfterTill(h.Left, low, high, iter)
 	}
-	if !low.Less(h.Item) {
+	if low != nil && !low.Less(h.Item) {
 		return t.rangeAfterTill(h.Right, low, high, iter)
 	}
 	if !t.rangeAfterTill(h.Left, low, high, iter) {
@@ -469,36 +453,36 @@ func (t *LLRB) rangeAfterTill(h *Node, low, high Item, iter KeyIterator) bool {
 // statistic operation
 //--------------------
 
-// GetHeight() returns an item in the tree with key @key,
-// and it's height in the tree
+// GetHeight() returns an item in the tree with
+// key @key, and it's height in the tree.
 func (t *LLRB) GetHeight(key Item) (result Item, depth int) {
-	return t.getHeight(t.root, key)
+	return getHeight(t.root, key)
 }
 
-func (t *LLRB) getHeight(h *Node, key Item) (Item, int) {
+// HeightStats() returns the average and standard
+// deviation of the height of elements in the tree.
+func (t *LLRB) HeightStats() (avg, stddev float64) {
+	av := &Average{}
+	heightStats(t.root, 0, av)
+	return av.GetAvg(), av.GetStdDev()
+}
+
+func getHeight(h *Node, key Item) (Item, int) {
 	if h == nil {
 		return nil, 0
 	}
 	if key.Less(h.Item) {
-		result, depth := t.getHeight(h.Left, key)
+		result, depth := getHeight(h.Left, key)
 		return result, depth + 1
 	}
 	if h.Item.Less(key) {
-		result, depth := t.getHeight(h.Right, key)
+		result, depth := getHeight(h.Right, key)
 		return result, depth + 1
 	}
 	return h.Item, 0
 }
 
-// HeightStats() returns the average and standard deviation of the height
-// of elements in the tree
-func (t *LLRB) HeightStats() (avg, stddev float64) {
-	av := &avgVar{}
-	heightStats(t.root, 0, av)
-	return av.GetAvg(), av.GetStdDev()
-}
-
-func heightStats(h *Node, d int, av *avgVar) {
+func heightStats(h *Node, d int, av *Average) {
 	if h == nil {
 		return
 	}
@@ -514,6 +498,15 @@ func heightStats(h *Node, d int, av *avgVar) {
 //-----
 // node
 //-----
+
+// Node in LLRB tree.
+type Node struct {
+	Item
+	Left, Right *Node // Pointers to left and right child nodes
+	// If set, the color of the link (incoming from the parent) is black
+	Black bool
+	// In the LLRB, new nodes are always red, hence the zero-value for node
+}
 
 func newNode(key Item) *Node { return &Node{Item: key} }
 
