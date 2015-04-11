@@ -13,6 +13,10 @@
 package llrb
 
 import "fmt"
+import "log"
+import "time"
+import "unsafe"
+import "sync/atomic"
 
 var _ = fmt.Sprintf("dummy format")
 
@@ -20,9 +24,18 @@ var _ = fmt.Sprintf("dummy format")
 // implementation of 2-3 trees supporting concurrent
 // reads.
 type LLRBMVCC struct {
+	// tree fields
+	root  unsafe.Pointer // *Node
 	count int
 	size  int
-	root  *Node
+	// writer fields
+	sync         chan bool
+	snapshots    [][2]interface{} // []{chan bool, []*Node}
+	reclaimstats map[string]*Average
+	// mvcc fields
+	reader      chan bool
+	writer      *LLRBMVCC
+	count_snaps int
 }
 
 //-----
@@ -30,18 +43,29 @@ type LLRBMVCC struct {
 //-----
 
 // New() allocates a new tree.
-func NewLLRBMVCC() *LLRBMVCC {
-	return &LLRBMVCC{}
+func NewLLRBMVCC(maxreaders int) *LLRBMVCC {
+	return &LLRBMVCC{
+		// writer fields
+		sync:      make(chan bool, maxreaders),
+		snapshots: make([][2]interface{}, 0),
+		reclaimstats: map[string]*Average{
+			"upsert": &Average{},
+			"insert": &Average{},
+			"delmin": &Average{},
+			"delmax": &Average{},
+			"delete": &Average{},
+		},
+	}
 }
 
 // SetRoot sets the root node of the tree.
 func (t *LLRBMVCC) SetRoot(r *Node) {
-	t.root = r
+	atomic.StorePointer(&t.root, unsafe.Pointer(r))
 }
 
 // Root returns the root node of the tree.
 func (t *LLRBMVCC) Root() *Node {
-	return t.root
+	return (*Node)(atomic.LoadPointer(&t.root))
 }
 
 // Len returns the number of nodes in the tree.
@@ -67,7 +91,7 @@ func (t *LLRBMVCC) Has(key Item) bool {
 // Get retrieves an element from the tree whose order is the
 // same as that of key.
 func (t *LLRBMVCC) Get(key Item) Item {
-	h := t.root
+	h := t.Root()
 	for h != nil {
 		switch {
 		case key.Less(h.Item):
@@ -83,7 +107,7 @@ func (t *LLRBMVCC) Get(key Item) Item {
 
 // Min returns the minimum element in the tree.
 func (t *LLRBMVCC) Min() Item {
-	h := t.root
+	h := t.Root()
 	if h == nil {
 		return nil
 	}
@@ -95,7 +119,7 @@ func (t *LLRBMVCC) Min() Item {
 
 // Max returns the maximum element in the tree.
 func (t *LLRBMVCC) Max() Item {
-	h := t.root
+	h := t.Root()
 	if h == nil {
 		return nil
 	}
@@ -130,8 +154,11 @@ func (t *LLRBMVCC) Upsert(key Item) Item {
 	}
 	var replaced Item
 	reclaim := []*Node{}
-	t.root, replaced, reclaim = t.upsert(t.root, key, reclaim)
-	t.root.Black = true
+	root := t.Root()
+	root, replaced, reclaim = t.upsert(root, key, reclaim)
+	t.reclaimNodes("upsert", reclaim)
+	root.Black = true
+	t.SetRoot(root)
 	if replaced == nil {
 		t.count++
 	}
@@ -170,8 +197,11 @@ func (t *LLRBMVCC) Insert(key Item) {
 		panic("inserting nil key")
 	}
 	reclaim := []*Node{}
-	t.root, reclaim = t.insert(t.root, key, reclaim)
-	t.root.Black = true
+	root := t.Root()
+	root, reclaim = t.insert(root, key, reclaim)
+	t.reclaimNodes("insert", reclaim)
+	root.Black = true
+	t.SetRoot(root)
 	t.count++
 }
 
@@ -220,10 +250,13 @@ func walkUpRot23COW(hnew *Node, reclaim []*Node) (*Node, []*Node) {
 func (t *LLRBMVCC) DeleteMin() Item {
 	var deleted Item
 	reclaim := []*Node{}
-	t.root, deleted, reclaim = deleteMinCOW(t.root, reclaim)
-	if t.root != nil {
-		t.root.Black = true
+	root := t.Root()
+	root, deleted, reclaim = deleteMinCOW(root, reclaim)
+	t.reclaimNodes("delmin", reclaim)
+	if root != nil {
+		root.Black = true
 	}
+	t.SetRoot(root)
 	if deleted != nil {
 		t.count--
 	}
@@ -259,10 +292,13 @@ func deleteMinCOW(h *Node, reclaim []*Node) (*Node, Item, []*Node) {
 func (t *LLRBMVCC) DeleteMax() Item {
 	var deleted Item
 	reclaim := []*Node{}
-	t.root, deleted, reclaim = deleteMaxCOW(t.root, reclaim)
-	if t.root != nil {
-		t.root.Black = true
+	root := t.Root()
+	root, deleted, reclaim = deleteMaxCOW(root, reclaim)
+	t.reclaimNodes("delmax", reclaim)
+	if root != nil {
+		root.Black = true
 	}
+	t.SetRoot(root)
 	if deleted != nil {
 		t.count--
 	}
@@ -298,10 +334,13 @@ func deleteMaxCOW(h *Node, reclaim []*Node) (*Node, Item, []*Node) {
 func (t *LLRBMVCC) Delete(key Item) Item {
 	var deleted Item
 	reclaim := []*Node{}
-	t.root, deleted, reclaim = t.delete(t.root, key, reclaim)
-	if t.root != nil {
-		t.root.Black = true
+	root := t.Root()
+	root, deleted, reclaim = t.delete(root, key, reclaim)
+	t.reclaimNodes("delete", reclaim)
+	if root != nil {
+		root.Black = true
 	}
+	t.SetRoot(root)
 	if deleted != nil {
 		t.count--
 	}
@@ -368,13 +407,13 @@ func (t *LLRBMVCC) delete(
 func (t *LLRBMVCC) Range(low, high Item, incl string, iter KeyIterator) {
 	switch incl {
 	case "both":
-		t.rangeFromFind(t.root, low, high, iter)
+		t.rangeFromFind(t.Root(), low, high, iter)
 	case "high":
-		t.rangeAfterFind(t.root, low, high, iter)
+		t.rangeAfterFind(t.Root(), low, high, iter)
 	case "low":
-		t.rangeFromTill(t.root, low, high, iter)
+		t.rangeFromTill(t.Root(), low, high, iter)
 	default:
-		t.rangeAfterTill(t.root, low, high, iter)
+		t.rangeAfterTill(t.Root(), low, high, iter)
 	}
 }
 
@@ -465,14 +504,21 @@ func (t *LLRBMVCC) rangeAfterTill(h *Node, low, high Item, iter KeyIterator) boo
 // GetHeight() returns an item in the tree with key @key,
 // and it's height in the tree
 func (t *LLRBMVCC) GetHeight(key Item) (result Item, depth int) {
-	return t.getHeight(t.root, key)
+	return getHeight(t.Root(), key)
 }
 
 // HeightStats() returns the average and standard deviation of the height
 // of elements in the tree
 func (t *LLRBMVCC) HeightStats() (avg, stddev float64) {
-	av := &avgVar{}
-	heightStats(t.root, 0, av)
+	av := &Average{}
+	heightStats(t.Root(), 0, av)
+	return av.GetAvg(), av.GetStdDev()
+}
+
+// CowStats() returns the average and standard
+// deviation of copy-on-writes.
+func (t *LLRBMVCC) CowStats(opname string) (avg, stddev float64) {
+	av := t.reclaimstats[opname]
 	return av.GetAvg(), av.GetStdDev()
 }
 
@@ -564,4 +610,72 @@ func fixUpCOW(hnew *Node, reclaim []*Node) (*Node, []*Node) {
 	}
 
 	return hnew, reclaim
+}
+
+//-------------
+// snapshotting
+//-------------
+
+func (t *LLRBMVCC) RSnapshot(timeout int) MemStore {
+	if t.reader != nil {
+		panic("cannot create snapshot on writer's root")
+	}
+	select {
+	case t.sync <- true:
+		if (t.count_snaps % 1000) == 0 {
+			t.snapshots = t.gc()
+		}
+
+	default:
+		tm := time.After(time.Duration(timeout) * time.Millisecond)
+		select {
+		case t.sync <- true:
+		case <-tm:
+			log.Fatalf("snapshot timeout")
+			return nil
+		}
+		t.snapshots = t.gc()
+	}
+
+	// prepare a new reader
+	ch := make(chan bool, 1)
+	t.snapshots = append(t.snapshots, [2]interface{}{ch, make([]*Node, 0)})
+	reader := &LLRBMVCC{
+		root:   unsafe.Pointer(t.Root()),
+		count:  t.count,
+		size:   t.size,
+		reader: ch,
+		writer: t,
+	}
+	t.count_snaps++
+	return reader
+}
+
+func (t *LLRBMVCC) ReleaseSnapshot() {
+	close(t.reader)
+	<-t.writer.sync
+}
+
+func (t *LLRBMVCC) reclaimNodes(opname string, reclaim []*Node) {
+	t.reclaimstats[opname].Add(float64(len(reclaim)))
+	if m, n := len(t.snapshots), len(reclaim); m == 0 && n > 0 {
+		// TODO: put []*Node back to sync.Pool
+	} else if n > 0 {
+		nodes := t.snapshots[m-1][1].([]*Node)
+		nodes = append(nodes, reclaim...)
+		t.snapshots[m-1][1] = nodes
+	}
+}
+
+func (t *LLRBMVCC) gc() [][2]interface{} {
+	snapshots := make([][2]interface{}, 0, len(t.snapshots))
+	for _, rd := range t.snapshots {
+		select {
+		case <-rd[0].(chan bool):
+			// TODO: put rd[1].([]*Node) back to sync.Pool
+		default:
+			snapshots = append(snapshots, rd)
+		}
+	}
+	return snapshots
 }

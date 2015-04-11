@@ -495,6 +495,15 @@ func heightStats(h *Node, d int, av *Average) {
 	}
 }
 
+func (t *LLRB) RSnapshot(timeout int) MemStore {
+	newt := NewLLRB()
+	newt.root = clone(t.root)
+	return newt
+}
+
+func (t *LLRB) ReleaseSnapshot() {
+}
+
 //-----
 // node
 //-----
@@ -509,6 +518,16 @@ type Node struct {
 }
 
 func newNode(key Item) *Node { return &Node{Item: key} }
+
+func clone(h *Node) *Node {
+	if h == nil {
+		return nil
+	}
+	newh := cow(h)
+	newh.Left = clone(h.Left)
+	newh.Right = clone(h.Right)
+	return newh
+}
 
 func isRed(h *Node) bool {
 	if h == nil {

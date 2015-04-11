@@ -11,7 +11,7 @@ func NewDict() *Dict {
 	return &Dict{dict: make(map[int]int64)}
 }
 
-func (d *Dict) Clone() *Dict {
+func (d *Dict) RSnapshot(_ int) *Dict {
 	newd := &Dict{dict: make(map[int]int64), size: d.size}
 	for k, v := range d.dict {
 		newd.dict[k] = v
