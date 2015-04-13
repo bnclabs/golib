@@ -156,12 +156,13 @@ func (t *LLRB) upsert(h *Node, key Item) (*Node, Item) {
 // Insert inserts key into the tree. If an existing
 // element has the same order, both elements remain in the tree.
 func (t *LLRB) Insert(key Item) {
-	if key == nil {
-		panic("inserting nil key")
-	}
-	t.root = t.insert(t.root, key)
-	t.root.Black = true
-	t.count++
+	t.Upsert(key)
+	//if key == nil {
+	//    panic("inserting nil key")
+	//}
+	//t.root = t.insert(t.root, key)
+	//t.root.Black = true
+	//t.count++
 }
 
 func (t *LLRB) insert(h *Node, key Item) *Node {
@@ -383,7 +384,7 @@ func (t *LLRB) rangeFromFind(h *Node, low, high Item, iter KeyIterator) bool {
 	if !t.rangeFromFind(h.Left, low, high, iter) {
 		return false
 	}
-	if !iter(h.Item) {
+	if iter != nil && !iter(h.Item) {
 		return false
 	}
 	return t.rangeFromFind(h.Right, low, high, iter)
@@ -403,7 +404,7 @@ func (t *LLRB) rangeFromTill(h *Node, low, high Item, iter KeyIterator) bool {
 	if !t.rangeFromTill(h.Left, low, high, iter) {
 		return false
 	}
-	if !iter(h.Item) {
+	if iter != nil && !iter(h.Item) {
 		return false
 	}
 	return t.rangeFromTill(h.Right, low, high, iter)
@@ -423,7 +424,7 @@ func (t *LLRB) rangeAfterFind(h *Node, low, high Item, iter KeyIterator) bool {
 	if !t.rangeAfterFind(h.Left, low, high, iter) {
 		return false
 	}
-	if !iter(h.Item) {
+	if iter != nil && !iter(h.Item) {
 		return false
 	}
 	return t.rangeAfterFind(h.Right, low, high, iter)
@@ -443,7 +444,7 @@ func (t *LLRB) rangeAfterTill(h *Node, low, high Item, iter KeyIterator) bool {
 	if !t.rangeAfterTill(h.Left, low, high, iter) {
 		return false
 	}
-	if !iter(h.Item) {
+	if iter != nil && !iter(h.Item) {
 		return false
 	}
 	return t.rangeAfterTill(h.Right, low, high, iter)

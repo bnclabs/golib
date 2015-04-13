@@ -193,16 +193,17 @@ func (t *LLRBMVCC) upsert(
 // Insert inserts key into the tree. If an existing
 // element has the same order, both elements remain in the tree.
 func (t *LLRBMVCC) Insert(key Item) {
-	if key == nil {
-		panic("inserting nil key")
-	}
-	reclaim := []*Node{}
-	root := t.Root()
-	root, reclaim = t.insert(root, key, reclaim)
-	t.reclaimNodes("insert", reclaim)
-	root.Black = true
-	t.SetRoot(root)
-	t.count++
+	t.Upsert(key)
+	//if key == nil {
+	//    panic("inserting nil key")
+	//}
+	//reclaim := []*Node{}
+	//root := t.Root()
+	//root, reclaim = t.insert(root, key, reclaim)
+	//t.reclaimNodes("insert", reclaim)
+	//root.Black = true
+	//t.SetRoot(root)
+	//t.count++
 }
 
 func (t *LLRBMVCC) insert(h *Node, key Item, reclaim []*Node) (*Node, []*Node) {
@@ -431,7 +432,7 @@ func (t *LLRBMVCC) rangeFromFind(h *Node, low, high Item, iter KeyIterator) bool
 	if !t.rangeFromFind(h.Left, low, high, iter) {
 		return false
 	}
-	if !iter(h.Item) {
+	if iter != nil && !iter(h.Item) {
 		return false
 	}
 	return t.rangeFromFind(h.Right, low, high, iter)
@@ -451,7 +452,7 @@ func (t *LLRBMVCC) rangeFromTill(h *Node, low, high Item, iter KeyIterator) bool
 	if !t.rangeFromTill(h.Left, low, high, iter) {
 		return false
 	}
-	if !iter(h.Item) {
+	if iter != nil && !iter(h.Item) {
 		return false
 	}
 	return t.rangeFromTill(h.Right, low, high, iter)
@@ -471,7 +472,7 @@ func (t *LLRBMVCC) rangeAfterFind(h *Node, low, high Item, iter KeyIterator) boo
 	if !t.rangeAfterFind(h.Left, low, high, iter) {
 		return false
 	}
-	if !iter(h.Item) {
+	if iter != nil && !iter(h.Item) {
 		return false
 	}
 	return t.rangeAfterFind(h.Right, low, high, iter)
@@ -491,7 +492,7 @@ func (t *LLRBMVCC) rangeAfterTill(h *Node, low, high Item, iter KeyIterator) boo
 	if !t.rangeAfterTill(h.Left, low, high, iter) {
 		return false
 	}
-	if !iter(h.Item) {
+	if iter != nil && !iter(h.Item) {
 		return false
 	}
 	return t.rangeAfterTill(h.Right, low, high, iter)
