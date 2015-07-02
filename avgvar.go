@@ -7,7 +7,7 @@ import "math"
 type Average struct {
 	count int64
 	sum   float64
-    sumsq float64
+	sumsq float64
 }
 
 // Add a sample to counting average.
@@ -19,26 +19,26 @@ func (av *Average) Add(sample float64) {
 
 // GetCount return the number of samples counted so far.
 func (av *Average) Count() int64 {
-    return av.count
+	return av.count
 }
 
-// GetAvg return the sum of all samples by number of samples so far.
+// Mean return the sum of all samples by number of samples so far.
 func (av *Average) Mean() float64 {
-    return av.sum / float64(av.count)
+	return av.sum / float64(av.count)
 }
 
 // GetTotal return the sum of all samples so far.
 func (av *Average) Sum() float64 {
-    return av.sum
+	return av.sum
 }
 
-// GetVar return the variance of all samples so far.
+// Variance return the variance of all samples so far.
 func (av *Average) Variance() float64 {
-	a := av.GetAvg()
+	a := av.Mean()
 	return av.sumsq/float64(av.count) - a*a
 }
 
 // GetStdDev return the standard-deviation of all samples so far.
 func (av *Average) Sd() float64 {
-    return math.Sqrt(av.GetVar())
+	return math.Sqrt(av.Variance())
 }
