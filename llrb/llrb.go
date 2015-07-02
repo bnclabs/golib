@@ -12,6 +12,8 @@
 // observed and documented by Robert Sedgewick.
 package llrb
 
+import "github.com/prataprc/golib"
+
 // LLRB is a Left-Leaning Red-Black (LLRB) implementation
 // of 2-3 trees
 type LLRB struct {
@@ -463,7 +465,7 @@ func (t *LLRB) GetHeight(key Item) (result Item, depth int) {
 // HeightStats() returns the average and standard
 // deviation of the height of elements in the tree.
 func (t *LLRB) HeightStats() (avg, stddev float64) {
-	av := &Average{}
+	av := &golib.Average{}
 	heightStats(t.root, 0, av)
 	return av.GetAvg(), av.GetStdDev()
 }
@@ -483,7 +485,7 @@ func getHeight(h *Node, key Item) (Item, int) {
 	return h.Item, 0
 }
 
-func heightStats(h *Node, d int, av *Average) {
+func heightStats(h *Node, d int, av *golib.Average) {
 	if h == nil {
 		return
 	}

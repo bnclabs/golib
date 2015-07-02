@@ -18,6 +18,8 @@ import "time"
 import "unsafe"
 import "sync/atomic"
 
+import "github.com/prataprc/golib"
+
 var _ = fmt.Sprintf("dummy format")
 
 // LLRBMVCC is a Left-Leaning Red-Black (LLRB)
@@ -31,7 +33,7 @@ type LLRBMVCC struct {
 	// writer fields
 	sync         chan bool
 	snapshots    [][2]interface{} // []{chan bool, []*Node}
-	reclaimstats map[string]*Average
+	reclaimstats map[string]*golib.Average
 	// mvcc fields
 	reader      chan bool
 	writer      *LLRBMVCC
@@ -48,12 +50,12 @@ func NewLLRBMVCC(maxreaders int) *LLRBMVCC {
 		// writer fields
 		sync:      make(chan bool, maxreaders),
 		snapshots: make([][2]interface{}, 0),
-		reclaimstats: map[string]*Average{
-			"upsert": &Average{},
-			"insert": &Average{},
-			"delmin": &Average{},
-			"delmax": &Average{},
-			"delete": &Average{},
+		reclaimstats: map[string]*golib.Average{
+			"upsert": &golib.Average{},
+			"insert": &golib.Average{},
+			"delmin": &golib.Average{},
+			"delmax": &golib.Average{},
+			"delete": &golib.Average{},
 		},
 	}
 }
@@ -153,7 +155,7 @@ func (t *LLRBMVCC) Upsert(key Item) Item {
 		panic("upserting nil key")
 	}
 	var replaced Item
-	reclaim := []*Node{}
+	reclaim := make([]*Node, 0, 64)
 	root := t.Root()
 	root, replaced, reclaim = t.upsert(root, key, reclaim)
 	t.reclaimNodes("upsert", reclaim)
@@ -511,7 +513,7 @@ func (t *LLRBMVCC) GetHeight(key Item) (result Item, depth int) {
 // HeightStats() returns the average and standard deviation of the height
 // of elements in the tree
 func (t *LLRBMVCC) HeightStats() (avg, stddev float64) {
-	av := &Average{}
+	av := &golib.Average{}
 	heightStats(t.Root(), 0, av)
 	return av.GetAvg(), av.GetStdDev()
 }

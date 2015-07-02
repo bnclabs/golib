@@ -1,12 +1,13 @@
-package llrb
+package golib
 
 import "math"
 
 // Average maintains the average and variance of a stream
 // of numbers in a space-efficient manner.
 type Average struct {
-	count      int64
-	sum, sumsq float64
+	count int64
+	sum   float64
+    sumsq float64
 }
 
 // Add a sample to counting average.
@@ -17,19 +18,27 @@ func (av *Average) Add(sample float64) {
 }
 
 // GetCount return the number of samples counted so far.
-func (av *Average) GetCount() int64 { return av.count }
+func (av *Average) Count() int64 {
+    return av.count
+}
 
 // GetAvg return the sum of all samples by number of samples so far.
-func (av *Average) GetAvg() float64 { return av.sum / float64(av.count) }
+func (av *Average) Mean() float64 {
+    return av.sum / float64(av.count)
+}
 
 // GetTotal return the sum of all samples so far.
-func (av *Average) GetTotal() float64 { return av.sum }
+func (av *Average) Sum() float64 {
+    return av.sum
+}
 
 // GetVar return the variance of all samples so far.
-func (av *Average) GetVar() float64 {
+func (av *Average) Variance() float64 {
 	a := av.GetAvg()
 	return av.sumsq/float64(av.count) - a*a
 }
 
 // GetStdDev return the standard-deviation of all samples so far.
-func (av *Average) GetStdDev() float64 { return math.Sqrt(av.GetVar()) }
+func (av *Average) Sd() float64 {
+    return math.Sqrt(av.GetVar())
+}

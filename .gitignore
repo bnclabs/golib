@@ -1,2 +1,5 @@
 *.swp
 .vimsession
+llrb/perf/perf
+llrb/perf/llrb.mprof
+llrb/perf/llrb.pprof
