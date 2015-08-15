@@ -1,0 +1,62 @@
+- memory pooling as slabs and items.
+  - slab pool, that manages memory blocks for many writers.
+    uses lock.
+  - item pool, that manages items for a single writer.
+    does not use any lock, except when calling into slab-pool.
+  - slab/items stats,
+    - number of alloc, number of free,
+    - number of free slabs.
+- memory degragmentation.
+  - can happen when alpha version of the tree is being persisted.
+  - the new alpha version becomes the current version (atomic swap)
+    and older version is freed back to the slab-pool.
+- sharding index as groups of vbuckets.
+  - implications to read path in the form of scatter gather.
+  - advantage, full tree scan will be quicker.
+  - advantage, memory defragmentation (by full table clone)
+    will need less duplicate memory.
+- periodic full table persistance, aka Alpha version.
+- modified MVCC for Primary data store, where upserts will
+  will use atomic as apposed to copy-on-write.
+  - two additional fields, timestamp, access count and
+    file/fpos, updated via atomic ops (makes read access countable
+    as well) to manage cache eviction.
+  - manage cache eviction based on most recently used and most
+    frequently used.
+  - identify events that shall trigger cached eviction.
+- storage stats,
+  - number of items.
+  - memory allocated.
+  - memory utilized.
+
+`nice to have`
+  - periodic persistance of difference of mutation from Alpha
+    version, aka delta versions.
+  - maintain alteast 1 alpha version and closed set of delta
+    versions.
+  - maintain current alphas version and open set of delta
+    versions.
+  - add a snapshot field into each node, that denotes at which
+    snapshot the node was upserted/deleted.
+  - modify the llrb algorithm to mark a node a dead corresponding
+    to delete operation.
+  - add a new API to purge deleted nodes upto a snapshot number.
+
+- llrb (plain, mvcc, kv)
+- index 
+  - collection of llrb
+  - collection of alpha versions and delta versions
+  - manages sharding the write path
+  - manages scatter gather read path
+- snapshot
+  - snapsot an index, with binary comparable timestamp.
+  - acquire a snapshot,
+  - pick request < snapshot, manage requests in wait-group
+  - release snapshot once all requests are serviced.
+  - snapshots are time-bound
+durablity engine
+  - notify llrb writer for a new version.
+  - piece-wise range calls into each llrb tree.
+  - sort the output of range calls.
+  - 
+  - spawn a backup routine for that snapshot.
